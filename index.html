@@ -269,6 +269,10 @@
             width: 100%;
         }
 
+        .nav-menu-toggle {
+            display: none;
+        }
+
         .hero {
             max-width: 1200px;
             margin: 0 auto;
@@ -1191,6 +1195,69 @@
         }
 
         @media (max-width: 768px) {
+            header {
+                transition: transform 0.25s ease;
+            }
+
+            header.mobile-nav-hidden {
+                transform: translateY(-105%);
+            }
+
+            nav {
+                position: relative;
+                padding: 0.8rem 1.25rem;
+                gap: 1rem;
+            }
+
+            .nav-menu-toggle {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.55rem;
+                min-height: 44px;
+                padding: 0.55rem 0.85rem;
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                background: var(--card-bg);
+                color: var(--fg);
+                font: inherit;
+                font-size: 0.9rem;
+                font-weight: 600;
+                cursor: pointer;
+            }
+
+            .nav-menu-toggle:hover,
+            .nav-menu-toggle[aria-expanded="true"] {
+                border-color: var(--accent);
+                background: var(--accent-light);
+            }
+
+            .nav-menu-toggle:focus-visible {
+                outline: 3px solid var(--accent);
+                outline-offset: 3px;
+            }
+
+            .nav-menu-icon {
+                display: grid;
+                gap: 4px;
+            }
+
+            .nav-menu-icon span {
+                width: 18px;
+                height: 2px;
+                border-radius: 2px;
+                background: currentColor;
+                transition: transform 0.2s ease;
+            }
+
+            .nav-menu-toggle[aria-expanded="true"] .nav-menu-icon span:first-child {
+                transform: translateY(3px) rotate(45deg);
+            }
+
+            .nav-menu-toggle[aria-expanded="true"] .nav-menu-icon span:last-child {
+                transform: translateY(-3px) rotate(-45deg);
+            }
+
             .hero h1 {
                 font-size: 2.5rem;
             }
@@ -1204,7 +1271,34 @@
             }
 
             .nav-links {
-                gap: 1.5rem;
+                display: none;
+                position: absolute;
+                top: calc(100% + 0.5rem);
+                right: 1.25rem;
+                left: 1.25rem;
+                z-index: 110;
+                flex-direction: column;
+                gap: 0.25rem;
+                padding: 0.6rem;
+                border: 1px solid var(--border);
+                border-radius: 16px;
+                background: var(--bg);
+                box-shadow: 0 16px 36px rgba(2, 6, 23, 0.32);
+            }
+
+            nav.menu-open .nav-links {
+                display: flex;
+            }
+
+            .nav-links a {
+                display: block;
+                padding: 0.8rem 0.75rem;
+                border-radius: 9px;
+            }
+
+            .nav-links a:hover,
+            .nav-links a[aria-current="location"] {
+                background: var(--accent-light);
             }
 
             .cta-buttons {
@@ -1224,6 +1318,11 @@
             .glow-orb,
             .hero h1 {
                 animation: none;
+            }
+
+            header,
+            .nav-menu-icon span {
+                transition: none;
             }
         }
     </style>
@@ -1256,7 +1355,11 @@
     <header>
         <nav>
             <a href="#" class="logo">Denis</a>
-            <ul class="nav-links">
+            <button class="nav-menu-toggle" type="button" aria-expanded="false" aria-controls="primary-navigation" aria-label="Abrir menú">
+                <span class="nav-menu-icon" aria-hidden="true"><span></span><span></span></span>
+                <span>Menú</span>
+            </button>
+            <ul class="nav-links" id="primary-navigation">
                 <li><a href="#sobre-mi">Sobre mí</a></li>
                 <li><a href="#proyectos">Proyectos</a></li>
                 <li><a href="#experiencia">Experiencia</a></li>
@@ -1290,7 +1393,7 @@
                     Soy <strong>Licenciado en Informática</strong> 
                     y llevo tiempo creando soluciones tecnologicas. Actualmente estoy
                     en proceso de formación para ampliar mi perfil hacia el rol de
-                    <strong>Ingeniero en Inteligencia Artificial.</strong> para crear 
+                    <strong>Ingeniero en Inteligencia Artificial</strong> para crear 
                     sistemas más inteligentes y útiles.
                 </p>
                 <p>
@@ -1619,9 +1722,64 @@
         });
 
         // Active nav link highlighting
+        const siteHeader = document.querySelector('header');
+        const siteNav = siteHeader.querySelector('nav');
+        const navMenuToggle = siteHeader.querySelector('.nav-menu-toggle');
+        const navLinks = siteHeader.querySelectorAll('.nav-links a');
+        const mobileNavigation = window.matchMedia('(max-width: 768px)');
+
+        function closeMobileMenu(returnFocus = false) {
+            siteNav.classList.remove('menu-open');
+            navMenuToggle.setAttribute('aria-expanded', 'false');
+            navMenuToggle.setAttribute('aria-label', 'Abrir menú');
+            if (returnFocus) navMenuToggle.focus();
+        }
+
+        navMenuToggle.addEventListener('click', () => {
+            const isExpanded = navMenuToggle.getAttribute('aria-expanded') === 'true';
+            if (isExpanded) {
+                closeMobileMenu();
+            } else {
+                siteNav.classList.add('menu-open');
+                navMenuToggle.setAttribute('aria-expanded', 'true');
+                navMenuToggle.setAttribute('aria-label', 'Cerrar menú');
+                siteHeader.classList.remove('mobile-nav-hidden');
+            }
+        });
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                if (mobileNavigation.matches) closeMobileMenu();
+            });
+        });
+
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && navMenuToggle.getAttribute('aria-expanded') === 'true') {
+                closeMobileMenu(true);
+            }
+        });
+
+        mobileNavigation.addEventListener('change', event => {
+            siteHeader.classList.remove('mobile-nav-hidden');
+            closeMobileMenu();
+        });
+
+        let lastScrollY = window.scrollY;
         window.addEventListener('scroll', () => {
+            const currentScrollY = window.scrollY;
+            if (mobileNavigation.matches) {
+                if (currentScrollY <= 20 || currentScrollY < lastScrollY - 5) {
+                    siteHeader.classList.remove('mobile-nav-hidden');
+                } else if (currentScrollY > lastScrollY + 5 && navMenuToggle.getAttribute('aria-expanded') !== 'true') {
+                    siteHeader.classList.add('mobile-nav-hidden');
+                }
+            } else {
+                siteHeader.classList.remove('mobile-nav-hidden');
+            }
+            lastScrollY = currentScrollY;
+
             const sections = document.querySelectorAll('section[id]');
-            const navLinks = document.querySelectorAll('.nav-links a');
+            const desktopNavLinks = document.querySelectorAll('.nav-links a');
 
             let current = '';
             sections.forEach(section => {
@@ -1631,10 +1789,13 @@
                 }
             });
 
-            navLinks.forEach(link => {
+            desktopNavLinks.forEach(link => {
                 link.style.color = '';
                 if (link.getAttribute('href') === '#' + current) {
                     link.style.color = 'var(--accent)';
+                    link.setAttribute('aria-current', 'location');
+                } else {
+                    link.removeAttribute('aria-current');
                 }
             });
         });
